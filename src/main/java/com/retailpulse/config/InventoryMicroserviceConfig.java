@@ -44,11 +44,11 @@ public class InventoryMicroserviceConfig {
               .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
               .requestMatchers("/hello").authenticated()
-              .requestMatchers("/api/inventory/businessEntityId/*").hasAnyRole("ADMIN", "CASHIER", "MANAGER")
-              .requestMatchers(HttpMethod.GET, "/api/products").hasAnyRole("ADMIN", "CASHIER", "MANAGER")
-              .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "MANAGER")
-              .requestMatchers("/api/products/**").hasAnyRole("ADMIN", "MANAGER")
-              .requestMatchers("/api/inventoryTransaction/**").hasAnyRole("ADMIN", "MANAGER")
+              .requestMatchers("/api/inventory/businessEntityId/*").hasAnyRole("ADMIN", "CASHIER", "MANAGER", "INVENTORY_MANAGER")
+              .requestMatchers(HttpMethod.GET, "/api/products").hasAnyRole("ADMIN", "CASHIER", "MANAGER", "INVENTORY_MANAGER")
+              .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
+              .requestMatchers("/api/products/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
+              .requestMatchers("/api/inventoryTransaction/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
               .anyRequest().authenticated()
             );
         } else {
