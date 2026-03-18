@@ -1,5 +1,6 @@
 package com.retailpulse.service;
 
+import com.retailpulse.annotation.AuditLog;
 import com.retailpulse.dto.request.TimeSearchFilterRequestDto;
 import com.retailpulse.dto.response.*;
 import com.retailpulse.entity.Inventory;
@@ -111,6 +112,7 @@ public class InventoryTransactionService {
         return result;
     }
 
+    @AuditLog(action = "CREATE_INVENTORY_TRANSACTION")
     @CacheEvict(value = {"inventoryTransactionProductList", "inventoryTransactionList"}, allEntries = true)
     public InventoryTransactionResponseDto saveInventoryTransaction(@NotNull InventoryTransaction inventoryTransaction) {
         validateInventoryTransactionRequestBody(inventoryTransaction);
@@ -202,6 +204,7 @@ public class InventoryTransactionService {
         );
     }
 
+    @AuditLog(action = "UPDATE_INVENTORY_TRANSACTION")
     // Helper Method
     @CacheEvict(value = {"inventoryTransactionProductList", "inventoryTransactionList"}, allEntries = true)
     public InventoryTransactionResponseDto updateInventoryTransaction(UUID id, InventoryTransaction inventoryTransactionDetails) {
