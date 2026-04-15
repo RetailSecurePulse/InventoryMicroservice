@@ -62,10 +62,10 @@ class InventoryServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals(1L, result.get(0).id());
-        assertEquals(101L, result.get(0).productId());
-        assertEquals(201L, result.get(0).businessEntityId());
-        assertEquals(50, result.get(0).quantity());
+        assertEquals(1L, result.getFirst().id());
+        assertEquals(101L, result.getFirst().productId());
+        assertEquals(201L, result.getFirst().businessEntityId());
+        assertEquals(50, result.getFirst().quantity());
 
         verify(inventoryRepository, times(1)).findAll();
         verifyNoMoreInteractions(inventoryRepository);
@@ -119,9 +119,9 @@ class InventoryServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(productId, result.get(0).productId());
-        assertEquals(201L, result.get(0).businessEntityId());
-        assertEquals(50, result.get(0).quantity());
+        assertEquals(productId, result.getFirst().productId());
+        assertEquals(201L, result.getFirst().businessEntityId());
+        assertEquals(50, result.getFirst().quantity());
 
         verify(inventoryRepository, times(1)).findByProductId(productId);
         verifyNoMoreInteractions(inventoryRepository);
@@ -149,9 +149,9 @@ class InventoryServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(businessEntityId, result.get(0).businessEntityId());
-        assertEquals(101L, result.get(0).productId());
-        assertEquals(50, result.get(0).quantity());
+        assertEquals(businessEntityId, result.getFirst().businessEntityId());
+        assertEquals(101L, result.getFirst().productId());
+        assertEquals(50, result.getFirst().quantity());
 
         verify(inventoryRepository, times(1)).findByBusinessEntityId(businessEntityId);
         verifyNoMoreInteractions(inventoryRepository);

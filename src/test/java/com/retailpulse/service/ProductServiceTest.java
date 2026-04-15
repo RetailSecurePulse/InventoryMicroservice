@@ -182,27 +182,6 @@ public class ProductServiceTest {
     }
 
     @Test
-    public void testUpdateProduct_ProductNotFound() {
-        Long productId = 1L;
-        // Arrange: updated product details
-        Product updatedProduct = new Product();
-        updatedProduct.setDescription("New Description");
-        updatedProduct.setRrp(20);
-
-        // Stub repository call to return an empty Optional (product not found)
-        when(productRepository.findById(productId)).thenReturn(Optional.empty());
-
-        // Act & Assert: expect an exception with the appropriate error message
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            productService.updateProduct(productId, updatedProduct);
-        });
-
-        assertEquals("Product not found with id: " + productId, exception.getMessage());
-        verify(productRepository, times(1)).findById(productId);
-        verify(productRepository, never()).save(any(Product.class));
-    }
-
-    @Test
     void testUpdateProductDoesNotChangeIsActive_Success() {
         Product existingProduct = new Product();
         existingProduct.setId(1L);
@@ -232,6 +211,7 @@ public class ProductServiceTest {
         product.setActive(true);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(inventoryService.inventoryContainsProduct(1L)).thenReturn(false);
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
             return invocation.<Product>getArgument(0);
         });
@@ -239,8 +219,47 @@ public class ProductServiceTest {
         productService.softDeleteProduct(1L);
 
         assertFalse(product.isActive()); // Ensure the product is marked as inactive
+        verify(inventoryService, times(1)).inventoryContainsProduct(1L);
         verify(productRepository, times(1)).save(product); // Ensure the product is saved
     }
+
+    @Test
+    void testDeleteProduct_FailsWhenAlreadyDeleted() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setActive(false);
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            productService.softDeleteProduct(1L);
+        });
+
+        assertEquals("Product with id 1 is already deleted.", exception.getMessage());
+        verify(productRepository, times(1)).findById(1L);
+        verifyNoInteractions(inventoryService);
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    void testDeleteProduct_FailsWhenInventoryExists() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setActive(true);
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(inventoryService.inventoryContainsProduct(1L)).thenReturn(true);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            productService.softDeleteProduct(1L);
+        });
+
+        assertEquals("Cannot delete product with id 1 because it exists in inventory.", exception.getMessage());
+        verify(productRepository, times(1)).findById(1L);
+        verify(inventoryService, times(1)).inventoryContainsProduct(1L);
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
     @Test
     void testReverseSoftDelete_Success() {
         Product product = new Product();

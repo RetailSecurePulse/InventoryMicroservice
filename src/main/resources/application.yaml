@@ -10,7 +10,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:30308/RPInventoryDB
     username: root
-    password: password
+    password: your_database_password
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -26,7 +26,7 @@ spring:
     redis:
       host: redis-rp-inventory
       port: 6379
-      password: redis-password-inventory
+      password: your_redis_password_inventory
       timeout: 60000
 
 businessentity-service:
