@@ -46,12 +46,11 @@ class InventoryControllerTest {
 
     @Test
     void testSalesUpdateStocks_success() throws Exception {
-        InventoryUpdateRequestDto.InventoryItem item = new InventoryUpdateRequestDto.InventoryItem(100L, 5);
-        InventoryUpdateRequestDto request = new InventoryUpdateRequestDto(1L, List.of(item));
+        InventoryUpdateRequestDto request = salesUpdateRequest(5);
 
         mockMvc.perform(post("/api/inventory/salesUpdate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(asJson(request)))
                 .andExpect(status().isOk());
 
         verify(inventoryService).salesUpdateStocks(request);
@@ -59,17 +58,24 @@ class InventoryControllerTest {
 
     @Test
     void testSalesUpdateStocks_businessException() throws Exception {
-        InventoryUpdateRequestDto.InventoryItem item = new InventoryUpdateRequestDto.InventoryItem(100L, 999);
-        InventoryUpdateRequestDto request = new InventoryUpdateRequestDto(1L, List.of(item));
+        InventoryUpdateRequestDto request = salesUpdateRequest(999);
 
         doThrow(new BusinessException("INSUFFICIENT_STOCK", "Not enough stock"))
                 .when(inventoryService).salesUpdateStocks(Mockito.any());
 
         mockMvc.perform(post("/api/inventory/salesUpdate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(asJson(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
                 .andExpect(jsonPath("$.message").value("Not enough stock"));
+    }
+
+    private InventoryUpdateRequestDto salesUpdateRequest(int quantity) {
+        return new InventoryUpdateRequestDto(1L, List.of(new InventoryUpdateRequestDto.InventoryItem(100L, quantity)));
+    }
+
+    private String asJson(Object value) throws Exception {
+        return objectMapper.writeValueAsString(value);
     }
 }

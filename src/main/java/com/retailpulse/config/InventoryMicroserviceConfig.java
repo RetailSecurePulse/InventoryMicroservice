@@ -15,6 +15,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import static com.retailpulse.dto.Constants.*;
+
 /**
  * @Author WilliamSiling
  * @create 5/2/2025 3:38 pm
@@ -45,11 +47,11 @@ public class InventoryMicroserviceConfig {
               .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
               .requestMatchers("/hello").authenticated()
-              .requestMatchers("/api/inventory/businessEntityId/*").hasAnyRole("ADMIN", "CASHIER", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers(HttpMethod.GET, "/api/products").hasAnyRole("ADMIN", "CASHIER", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers("/api/products/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers("/api/inventoryTransaction/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
+              .requestMatchers("/api/inventory/businessEntityId/*").hasAnyRole(ADMIN, CASHIER, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers(HttpMethod.GET, "/api/products").hasAnyRole(ADMIN, CASHIER, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers("/api/inventory/**").hasAnyRole(ADMIN, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers("/api/products/**").hasAnyRole(ADMIN, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers("/api/inventoryTransaction/**").hasAnyRole(ADMIN, MANAGER, INVENTORY_MANAGER)
               .anyRequest().authenticated()
             );
         } else {
@@ -69,8 +71,8 @@ public class InventoryMicroserviceConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(originURL));
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of(AUTHORIZATION_HEADER, "Content-Type"));
+        configuration.setExposedHeaders(List.of(AUTHORIZATION_HEADER));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

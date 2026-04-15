@@ -5,302 +5,172 @@ import com.retailpulse.dto.response.InventoryResponseDto;
 import com.retailpulse.entity.Inventory;
 import com.retailpulse.repository.InventoryRepository;
 import com.retailpulse.service.exception.BusinessException;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
 
     @Mock
-    private InventoryRepository inventoryRepository; // Mocked dependency
+    private InventoryRepository inventoryRepository;
 
     @Mock
     private BusinessEntityService businessEntityService;
 
     @InjectMocks
-    private InventoryService inventoryService; // Service under test
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this); // Initialize mocks
-    }
+    private InventoryService inventoryService;
 
     @Test
     void testGetAllInventory() {
-        // Arrange
-        Inventory item1 = new Inventory();
-        item1.setId(1L);
-        item1.setProductId(101L);
-        item1.setBusinessEntityId(201L);
-        item1.setQuantity(50);
+        when(inventoryRepository.findAll()).thenReturn(List.of(
+                inventory(1L, 101L, 201L, 50),
+                inventory(2L, 102L, 202L, 30)
+        ));
 
-        Inventory item2 = new Inventory();
-        item2.setId(2L);
-        item2.setProductId(102L);
-        item2.setBusinessEntityId(202L);
-        item2.setQuantity(30);
-
-        List<Inventory> mockInventories = Arrays.asList(item1, item2);
-
-        when(inventoryRepository.findAll()).thenReturn(mockInventories);
-
-        // Act
         List<InventoryResponseDto> result = inventoryService.getAllInventory();
 
-        // Assert
-        assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals(1L, result.getFirst().id());
-        assertEquals(101L, result.getFirst().productId());
-        assertEquals(201L, result.getFirst().businessEntityId());
-        assertEquals(50, result.getFirst().quantity());
-
-        verify(inventoryRepository, times(1)).findAll();
+        assertInventoryResponse(result.getFirst(), 1L, 101L, 201L, 50);
+        verify(inventoryRepository).findAll();
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
     void testGetInventoryById() {
-        // Arrange
         Long inventoryId = 1L;
+        when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(inventory(inventoryId, 101L, 201L, 50)));
 
-        Inventory mockInventory = new Inventory();
-        mockInventory.setId(inventoryId);
-        mockInventory.setProductId(101L);
-        mockInventory.setBusinessEntityId(201L);
-        mockInventory.setQuantity(50);
-
-        when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(mockInventory));
-
-        // Act
         InventoryResponseDto result = inventoryService.getInventoryById(inventoryId);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(inventoryId, result.id());
-        assertEquals(101L, result.productId());
-        assertEquals(201L, result.businessEntityId());
-        assertEquals(50, result.quantity());
-
-        verify(inventoryRepository, times(1)).findById(inventoryId);
+        assertInventoryResponse(result, inventoryId, 101L, 201L, 50);
+        verify(inventoryRepository).findById(inventoryId);
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
     void testGetInventoryByProductId() {
-        // Arrange
         Long productId = 101L;
+        when(inventoryRepository.findByProductId(productId)).thenReturn(List.of(inventory(1L, productId, 201L, 50)));
 
-        Inventory mockInventory = new Inventory();
-        mockInventory.setId(1L);
-        mockInventory.setProductId(productId);
-        mockInventory.setBusinessEntityId(201L);
-        mockInventory.setQuantity(50);
-
-        List<Inventory> mockInventories = Collections.singletonList(mockInventory);
-
-        when(inventoryRepository.findByProductId(productId)).thenReturn(mockInventories);
-
-        // Act
         List<InventoryResponseDto> result = inventoryService.getInventoryByProductId(productId);
 
-        // Assert
-        assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(productId, result.getFirst().productId());
-        assertEquals(201L, result.getFirst().businessEntityId());
-        assertEquals(50, result.getFirst().quantity());
-
-        verify(inventoryRepository, times(1)).findByProductId(productId);
+        assertInventoryResponse(result.getFirst(), 1L, productId, 201L, 50);
+        verify(inventoryRepository).findByProductId(productId);
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
     void testGetInventoryByBusinessEntityId() {
-        // Arrange
         Long businessEntityId = 201L;
-
-        Inventory mockInventory = new Inventory();
-        mockInventory.setId(1L);
-        mockInventory.setProductId(101L);
-        mockInventory.setBusinessEntityId(businessEntityId);
-        mockInventory.setQuantity(50);
-
-        List<Inventory> mockInventories = Collections.singletonList(mockInventory);
-
         when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(true);
-        when(inventoryRepository.findByBusinessEntityId(businessEntityId)).thenReturn(mockInventories);
+        when(inventoryRepository.findByBusinessEntityId(businessEntityId))
+                .thenReturn(List.of(inventory(1L, 101L, businessEntityId, 50)));
 
-        // Act
         List<InventoryResponseDto> result = inventoryService.getInventoryByBusinessEntityId(businessEntityId);
 
-        // Assert
-        assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(businessEntityId, result.getFirst().businessEntityId());
-        assertEquals(101L, result.getFirst().productId());
-        assertEquals(50, result.getFirst().quantity());
-
-        verify(inventoryRepository, times(1)).findByBusinessEntityId(businessEntityId);
+        assertInventoryResponse(result.getFirst(), 1L, 101L, businessEntityId, 50);
+        verify(inventoryRepository).findByBusinessEntityId(businessEntityId);
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
     void testGetInventoryByProductIdAndBusinessEntityId() {
-        // Arrange
         Long productId = 101L;
         Long businessEntityId = 201L;
-
-        Inventory mockInventory = new Inventory();
-        mockInventory.setId(1L);
-        mockInventory.setProductId(productId);
-        mockInventory.setBusinessEntityId(businessEntityId);
-        mockInventory.setQuantity(50);
-
-        when(inventoryRepository.findByProductIdAndBusinessEntityId(productId, businessEntityId))
-                .thenReturn(Optional.of(mockInventory));
         when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(true);
+        when(inventoryRepository.findByProductIdAndBusinessEntityId(productId, businessEntityId))
+                .thenReturn(Optional.of(inventory(1L, productId, businessEntityId, 50)));
 
-        // Act
         InventoryResponseDto result = inventoryService.getInventoryByProductIdAndBusinessEntityId(productId, businessEntityId);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(productId, result.productId());
-        assertEquals(businessEntityId, result.businessEntityId());
-        assertEquals(50, result.quantity());
-
-        verify(inventoryRepository, times(1)).findByProductIdAndBusinessEntityId(productId, businessEntityId);
+        assertInventoryResponse(result, 1L, productId, businessEntityId, 50);
+        verify(inventoryRepository).findByProductIdAndBusinessEntityId(productId, businessEntityId);
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
-    public void testInventoryContainsProduct_ReturnsTrueWhenProductExists() {
+    void testInventoryContainsProduct_ReturnsTrueWhenProductExists() {
         Long productId = 1L;
-        Inventory inventory = new Inventory();
-        inventory.setProductId(productId);
-        when(inventoryRepository.findByProductId(productId)).thenReturn(List.of(inventory));
+        when(inventoryRepository.findByProductId(productId)).thenReturn(List.of(inventory(null, productId, 201L, 10)));
 
         boolean exists = inventoryService.inventoryContainsProduct(productId);
-        assertTrue(exists, "Should return true when inventory exists for the given productId");
+
+        assertTrue(exists);
     }
 
     @Test
-    public void testInventoryContainsProduct_ReturnsFalseWhenNoInventory() {
+    void testInventoryContainsProduct_ReturnsFalseWhenNoInventory() {
         Long productId = 2L;
-        when(inventoryRepository.findByProductId(productId)).thenReturn(Collections.emptyList());
+        when(inventoryRepository.findByProductId(productId)).thenReturn(List.of());
 
         boolean exists = inventoryService.inventoryContainsProduct(productId);
-        assertFalse(exists, "Should return false when there is no inventory for the given productId");
+
+        assertFalse(exists);
     }
 
     @Test
     void testSaveInventory() {
-        // Arrange
-        Inventory inventoryToSave = new Inventory();
-        inventoryToSave.setProductId(101L);
-        inventoryToSave.setBusinessEntityId(201L);
-        inventoryToSave.setQuantity(50);
-
-        Inventory savedInventory = new Inventory();
-        savedInventory.setId(1L);
-        savedInventory.setProductId(101L);
-        savedInventory.setBusinessEntityId(201L);
-        savedInventory.setQuantity(50);
+        Inventory inventoryToSave = inventory(null, 101L, 201L, 50);
+        Inventory savedInventory = inventory(1L, 101L, 201L, 50);
 
         when(inventoryRepository.save(inventoryToSave)).thenReturn(savedInventory);
 
-        // Act
         Inventory result = inventoryService.saveInventory(inventoryToSave);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(101L, result.getProductId());
-        assertEquals(201L, result.getBusinessEntityId());
-        assertEquals(50, result.getQuantity());
-
-        verify(inventoryRepository, times(1)).save(inventoryToSave);
+        assertInventory(result, 1L, 101L, 201L, 50);
+        verify(inventoryRepository).save(inventoryToSave);
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
     void testUpdateInventory() {
-        // Arrange
         Long inventoryId = 1L;
-
-        Inventory existingInventory = new Inventory();
-        existingInventory.setId(inventoryId);
-        existingInventory.setProductId(101L);
-        existingInventory.setBusinessEntityId(201L);
-        existingInventory.setQuantity(50);
-
-        Inventory updatedDetails = new Inventory();
-        updatedDetails.setProductId(102L);
-        updatedDetails.setBusinessEntityId(202L);
-        updatedDetails.setQuantity(60);
-
-        Inventory updatedInventory = new Inventory();
-        updatedInventory.setId(inventoryId);
-        updatedInventory.setProductId(102L);
-        updatedInventory.setBusinessEntityId(202L);
-        updatedInventory.setQuantity(60);
+        Inventory existingInventory = inventory(inventoryId, 101L, 201L, 50);
+        Inventory updatedDetails = inventory(null, 102L, 202L, 60);
+        Inventory updatedInventory = inventory(inventoryId, 102L, 202L, 60);
 
         when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(existingInventory));
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(updatedInventory);
 
-        // Act
         Inventory result = inventoryService.updateInventory(inventoryId, updatedDetails);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(inventoryId, result.getId());
-        assertEquals(102L, result.getProductId());
-        assertEquals(202L, result.getBusinessEntityId());
-        assertEquals(60, result.getQuantity());
-
-        verify(inventoryRepository, times(1)).findById(inventoryId);
-        verify(inventoryRepository, times(1)).save(any(Inventory.class));
+        assertInventory(result, inventoryId, 102L, 202L, 60);
+        verify(inventoryRepository).findById(inventoryId);
+        verify(inventoryRepository).save(any(Inventory.class));
         verifyNoMoreInteractions(inventoryRepository);
     }
 
     @Test
     void testDeleteInventory() {
-        // Arrange
         Long inventoryId = 1L;
-
-        Inventory inventoryToDelete = new Inventory();
-        inventoryToDelete.setId(inventoryId);
-        inventoryToDelete.setProductId(101L);
-        inventoryToDelete.setBusinessEntityId(201L);
-        inventoryToDelete.setQuantity(50);
-
+        Inventory inventoryToDelete = inventory(inventoryId, 101L, 201L, 50);
         when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(inventoryToDelete));
 
-        // Act
         Inventory result = inventoryService.deleteInventory(inventoryId);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(inventoryId, result.getId());
-        assertEquals(101L, result.getProductId());
-        assertEquals(201L, result.getBusinessEntityId());
-        assertEquals(50, result.getQuantity());
-
-        verify(inventoryRepository, times(1)).findById(inventoryId);
-        verify(inventoryRepository, times(1)).delete(inventoryToDelete);
+        assertInventory(result, inventoryId, 101L, 201L, 50);
+        verify(inventoryRepository).findById(inventoryId);
+        verify(inventoryRepository).delete(inventoryToDelete);
         verifyNoMoreInteractions(inventoryRepository);
     }
 
@@ -308,15 +178,8 @@ class InventoryServiceTest {
     void testSalesUpdateStocks_successfulDeduction() {
         long businessEntityId = 1L;
         long productId = 100L;
-
-        Inventory inventory = new Inventory();
-        inventory.setId(1L);
-        inventory.setProductId(productId);
-        inventory.setBusinessEntityId(businessEntityId);
-        inventory.setQuantity(50);
-
-        InventoryUpdateRequestDto.InventoryItem item = new InventoryUpdateRequestDto.InventoryItem(productId, 10);
-        InventoryUpdateRequestDto request = new InventoryUpdateRequestDto(businessEntityId, List.of(item));
+        Inventory inventory = inventory(1L, productId, businessEntityId, 50);
+        InventoryUpdateRequestDto request = salesUpdateRequest(businessEntityId, productId, 10);
 
         when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(true);
         when(inventoryRepository.findByProductIdAndBusinessEntityId(productId, businessEntityId)).thenReturn(Optional.of(inventory));
@@ -331,20 +194,14 @@ class InventoryServiceTest {
     void testSalesUpdateStocks_insufficientStock_throwsException() {
         long businessEntityId = 1L;
         long productId = 100L;
-
-        Inventory inventory = new Inventory();
-        inventory.setId(1L);
-        inventory.setProductId(productId);
-        inventory.setBusinessEntityId(businessEntityId);
-        inventory.setQuantity(5);
-
-        InventoryUpdateRequestDto.InventoryItem item = new InventoryUpdateRequestDto.InventoryItem(productId, 10);
-        InventoryUpdateRequestDto request = new InventoryUpdateRequestDto(businessEntityId, List.of(item));
+        Inventory inventory = inventory(1L, productId, businessEntityId, 5);
+        InventoryUpdateRequestDto request = salesUpdateRequest(businessEntityId, productId, 10);
 
         when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(true);
         when(inventoryRepository.findByProductIdAndBusinessEntityId(productId, businessEntityId)).thenReturn(Optional.of(inventory));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> inventoryService.salesUpdateStocks(request));
+
         assertEquals("INSUFFICIENT_STOCK", ex.getCode());
         verify(inventoryRepository, never()).save(any());
     }
@@ -353,10 +210,42 @@ class InventoryServiceTest {
     void testSalesUpdateStocks_invalidBusinessEntity_throwsException() {
         long businessEntityId = 99L;
         InventoryUpdateRequestDto request = new InventoryUpdateRequestDto(businessEntityId, List.of());
-
         when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(false);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> inventoryService.salesUpdateStocks(request));
+
         assertEquals("INVALID_BUSINESS_ENTITY", ex.getCode());
+    }
+
+    private Inventory inventory(Long id, Long productId, Long businessEntityId, int quantity) {
+        Inventory inventory = new Inventory();
+        inventory.setId(id);
+        inventory.setProductId(productId);
+        inventory.setBusinessEntityId(businessEntityId);
+        inventory.setQuantity(quantity);
+        return inventory;
+    }
+
+    private InventoryUpdateRequestDto salesUpdateRequest(long businessEntityId, long productId, int quantity) {
+        return new InventoryUpdateRequestDto(
+                businessEntityId,
+                List.of(new InventoryUpdateRequestDto.InventoryItem(productId, quantity))
+        );
+    }
+
+    private void assertInventory(Inventory inventory, Long id, Long productId, Long businessEntityId, int quantity) {
+        assertNotNull(inventory);
+        assertEquals(id, inventory.getId());
+        assertEquals(productId, inventory.getProductId());
+        assertEquals(businessEntityId, inventory.getBusinessEntityId());
+        assertEquals(quantity, inventory.getQuantity());
+    }
+
+    private void assertInventoryResponse(InventoryResponseDto response, Long id, Long productId, Long businessEntityId, int quantity) {
+        assertNotNull(response);
+        assertEquals(id, response.id());
+        assertEquals(productId, response.productId());
+        assertEquals(businessEntityId, response.businessEntityId());
+        assertEquals(quantity, response.quantity());
     }
 }

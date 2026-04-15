@@ -51,37 +51,13 @@ class ProductControllerTest {
 
     @Test
     void testCreateProduct_usesRequestDtoAndMapsToEntity() throws Exception {
-        ProductCreateRequestDto request = new ProductCreateRequestDto(
-                "Denim Jacket",
-                "Outerwear",
-                "Jackets",
-                "Levis",
-                "USA",
-                "each",
-                "LEV",
-                "1234567890",
-                79.99,
-                false
-        );
-        ProductResponseDto response = new ProductResponseDto(
-                1L,
-                "RP12345",
-                "Denim Jacket",
-                "Outerwear",
-                "Jackets",
-                "Levis",
-                "USA",
-                "each",
-                "LEV",
-                "1234567890",
-                79.99,
-                false
-        );
+        ProductCreateRequestDto request = createRequest();
+        ProductResponseDto response = productResponse("Denim Jacket", "Outerwear", "Jackets", "Levis", "USA", "each", "LEV", "1234567890", 79.99, false);
         when(productService.saveProduct(any(Product.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(asJson(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sku").value("RP12345"))
                 .andExpect(jsonPath("$.description").value("Denim Jacket"))
@@ -106,36 +82,13 @@ class ProductControllerTest {
 
     @Test
     void testUpdateProduct_usesUpdateDto() throws Exception {
-        ProductUpdateRequestDto request = new ProductUpdateRequestDto(
-                "Updated Jacket",
-                null,
-                "Bomber",
-                null,
-                "Italy",
-                null,
-                "VENDOR-2",
-                null,
-                99.5
-        );
-        ProductResponseDto response = new ProductResponseDto(
-                1L,
-                "RP12345",
-                "Updated Jacket",
-                "Outerwear",
-                "Bomber",
-                "Levis",
-                "Italy",
-                "each",
-                "VENDOR-2",
-                "1234567890",
-                99.5,
-                true
-        );
+        ProductUpdateRequestDto request = updateRequest();
+        ProductResponseDto response = productResponse("Updated Jacket", "Outerwear", "Bomber", "Levis", "Italy", "each", "VENDOR-2", "1234567890", 99.5, true);
         when(productService.updateProduct(eq(1L), any(ProductUpdateRequestDto.class))).thenReturn(response);
 
         mockMvc.perform(put("/api/products/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(asJson(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.description").value("Updated Jacket"))
@@ -157,5 +110,28 @@ class ProductControllerTest {
         assertEquals("VENDOR-2", mapped.vendorCode());
         assertNull(mapped.barcode());
         assertEquals(99.5, mapped.rrp());
+    }
+
+    private ProductCreateRequestDto createRequest() {
+        return new ProductCreateRequestDto(
+                "Denim Jacket", "Outerwear", "Jackets", "Levis", "USA",
+                "each", "LEV", "1234567890", 79.99, false
+        );
+    }
+
+    private ProductUpdateRequestDto updateRequest() {
+        return new ProductUpdateRequestDto(
+                "Updated Jacket", null, "Bomber", null, "Italy", null, "VENDOR-2", null, 99.5
+        );
+    }
+
+    private ProductResponseDto productResponse(String description, String category, String subcategory, String brand,
+                                               String origin, String uom, String vendorCode, String barcode,
+                                               double rrp, boolean active) {
+        return new ProductResponseDto(1L, "RP12345", description, category, subcategory, brand, origin, uom, vendorCode, barcode, rrp, active);
+    }
+
+    private String asJson(Object value) throws Exception {
+        return objectMapper.writeValueAsString(value);
     }
 }

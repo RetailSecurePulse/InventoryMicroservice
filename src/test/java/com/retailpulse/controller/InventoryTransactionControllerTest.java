@@ -53,22 +53,14 @@ class InventoryTransactionControllerTest {
 
     @Test
     void testCreateInventoryTransaction_usesRequestDtoAndMapsToEntity() throws Exception {
-        InventoryTransactionRequestDto request = new InventoryTransactionRequestDto(10L, 4, 9.5, 101L, 201L);
-        InventoryTransactionResponseDto response = new InventoryTransactionResponseDto(
-                UUID.randomUUID(),
-                10L,
-                4,
-                9.5,
-                101L,
-                201L,
-                Instant.parse("2026-04-16T00:00:00Z")
-        );
+        InventoryTransactionRequestDto request = createRequest();
+        InventoryTransactionResponseDto response = transactionResponse(UUID.randomUUID(), 10L, 4, 9.5, 101L, 201L);
         when(inventoryTransactionService.saveInventoryTransaction(org.mockito.ArgumentMatchers.any(InventoryTransaction.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/api/inventoryTransaction")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(asJson(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(10))
                 .andExpect(jsonPath("$.quantity").value(4))
@@ -90,22 +82,14 @@ class InventoryTransactionControllerTest {
     @Test
     void testUpdateInventoryTransaction_usesUpdateDto() throws Exception {
         UUID transactionId = UUID.randomUUID();
-        InventoryTransactionUpdateRequestDto request = new InventoryTransactionUpdateRequestDto(15L, null, 12.75, null, 301L);
-        InventoryTransactionResponseDto response = new InventoryTransactionResponseDto(
-                transactionId,
-                15L,
-                7,
-                12.75,
-                101L,
-                301L,
-                Instant.parse("2026-04-16T00:00:00Z")
-        );
+        InventoryTransactionUpdateRequestDto request = updateRequest();
+        InventoryTransactionResponseDto response = transactionResponse(transactionId, 15L, 7, 12.75, 101L, 301L);
         when(inventoryTransactionService.updateInventoryTransaction(org.mockito.ArgumentMatchers.eq(transactionId), org.mockito.ArgumentMatchers.any(InventoryTransactionUpdateRequestDto.class)))
                 .thenReturn(response);
 
         mockMvc.perform(put("/api/inventoryTransaction/{id}", transactionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(asJson(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(15))
                 .andExpect(jsonPath("$.quantity").value(7))
@@ -122,5 +106,29 @@ class InventoryTransactionControllerTest {
         assertEquals(12.75, mapped.costPricePerUnit());
         assertNull(mapped.source());
         assertEquals(301L, mapped.destination());
+    }
+
+    private InventoryTransactionRequestDto createRequest() {
+        return new InventoryTransactionRequestDto(10L, 4, 9.5, 101L, 201L);
+    }
+
+    private InventoryTransactionUpdateRequestDto updateRequest() {
+        return new InventoryTransactionUpdateRequestDto(15L, null, 12.75, null, 301L);
+    }
+
+    private InventoryTransactionResponseDto transactionResponse(UUID id, Long productId, int quantity, double costPricePerUnit, Long source, Long destination) {
+        return new InventoryTransactionResponseDto(
+                id,
+                productId,
+                quantity,
+                costPricePerUnit,
+                source,
+                destination,
+                Instant.parse("2026-04-16T00:00:00Z")
+        );
+    }
+
+    private String asJson(Object value) throws Exception {
+        return objectMapper.writeValueAsString(value);
     }
 }
