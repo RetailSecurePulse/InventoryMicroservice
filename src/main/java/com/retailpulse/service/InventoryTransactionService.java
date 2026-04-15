@@ -1,5 +1,6 @@
 package com.retailpulse.service;
 
+import com.retailpulse.dto.request.InventoryTransactionUpdateRequestDto;
 import com.retailpulse.dto.request.TimeSearchFilterRequestDto;
 import com.retailpulse.dto.response.*;
 import com.retailpulse.entity.Inventory;
@@ -204,15 +205,15 @@ public class InventoryTransactionService {
 
     // Helper Method
     @CacheEvict(value = {"inventoryTransactionProductList", "inventoryTransactionList"}, allEntries = true)
-    public InventoryTransactionResponseDto updateInventoryTransaction(UUID id, InventoryTransaction inventoryTransactionDetails) {
+    public InventoryTransactionResponseDto updateInventoryTransaction(UUID id, InventoryTransactionUpdateRequestDto inventoryTransactionDetails) {
         InventoryTransaction inventoryTransaction = inventoryTransactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Inventory not found with id: " + id));
 
-        updateField(inventoryTransactionDetails.getProductId(), inventoryTransaction::setProductId);
-        updateField(inventoryTransactionDetails.getQuantity(), inventoryTransaction::setQuantity);
-        updateField(inventoryTransactionDetails.getCostPricePerUnit(), inventoryTransaction::setCostPricePerUnit);
-        updateField(inventoryTransactionDetails.getSource(), inventoryTransaction::setSource);
-        updateField(inventoryTransactionDetails.getDestination(), inventoryTransaction::setDestination);
+        updateField(inventoryTransactionDetails.productId(), inventoryTransaction::setProductId);
+        updateField(inventoryTransactionDetails.quantity(), inventoryTransaction::setQuantity);
+        updateField(inventoryTransactionDetails.costPricePerUnit(), inventoryTransaction::setCostPricePerUnit);
+        updateField(inventoryTransactionDetails.source(), inventoryTransaction::setSource);
+        updateField(inventoryTransactionDetails.destination(), inventoryTransaction::setDestination);
         InventoryTransaction updatedInventoryTransaction = inventoryTransactionRepository.save(inventoryTransaction);
         return new InventoryTransactionResponseDto(
                 updatedInventoryTransaction.getId(),

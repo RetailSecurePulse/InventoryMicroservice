@@ -1,5 +1,6 @@
 package com.retailpulse.service;
 
+import com.retailpulse.dto.request.InventoryTransactionUpdateRequestDto;
 import com.retailpulse.dto.response.*;
 import com.retailpulse.entity.Inventory;
 import com.retailpulse.entity.InventoryTransaction;
@@ -12,8 +13,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,7 +69,7 @@ class InventoryTransactionServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Product A", result.get(0).product().getDescription());
+        assertEquals("Product A", result.getFirst().product().getDescription());
 
         verify(mockInventoryTransactionRepository, times(1)).findAllWithProduct();
         verifyNoMoreInteractions(mockInventoryTransactionRepository);
@@ -165,9 +168,7 @@ class InventoryTransactionServiceTest {
         when(mockInventoryService.getInventoryByProductIdAndBusinessEntityId(1L, 101L)).thenReturn(sourceInventory);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            inventoryTransactionService.saveInventoryTransaction(transaction);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> inventoryTransactionService.saveInventoryTransaction(transaction));
 
         assertEquals(
                 "Not enough quantity in source inventory for product id: 1 and source id: 101. Available: 20, required: 30",
@@ -195,9 +196,7 @@ class InventoryTransactionServiceTest {
         when(mockProductService.getProductById(999L)).thenReturn(null);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            inventoryTransactionService.saveInventoryTransaction(transaction);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> inventoryTransactionService.saveInventoryTransaction(transaction));
 
         assertEquals("Product not found for product id: 999", exception.getMessage());
 
@@ -220,9 +219,7 @@ class InventoryTransactionServiceTest {
         when(mockProductService.getProductById(1L)).thenReturn(product);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            inventoryTransactionService.saveInventoryTransaction(transaction);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> inventoryTransactionService.saveInventoryTransaction(transaction));
 
         assertEquals("Source and Destination cannot be the same", exception.getMessage());
 
@@ -245,9 +242,7 @@ class InventoryTransactionServiceTest {
         when(mockProductService.getProductById(1L)).thenReturn(product);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            inventoryTransactionService.saveInventoryTransaction(transaction);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> inventoryTransactionService.saveInventoryTransaction(transaction));
 
         assertEquals("Quantity cannot be negative or zero", exception.getMessage());
 
@@ -496,5 +491,39 @@ class InventoryTransactionServiceTest {
         verify(mockBusinessEntityService, times(1)).isExternalBusinessEntity(101L);
         verify(mockBusinessEntityService, times(1)).isExternalBusinessEntity(201L);
         verify(mockInventoryTransactionRepository, times(1)).save(transaction);
+    }
+
+    @Test
+    void testUpdateInventoryTransaction_partialUpdatePreservesExistingValues() {
+        UUID transactionId = UUID.randomUUID();
+        Instant insertedAt = Instant.parse("2026-04-16T00:00:00Z");
+
+        InventoryTransaction existingTransaction = new InventoryTransaction();
+        existingTransaction.setId(transactionId);
+        existingTransaction.setProductId(1L);
+        existingTransaction.setQuantity(7);
+        existingTransaction.setCostPricePerUnit(5.5);
+        existingTransaction.setSource(101L);
+        existingTransaction.setDestination(201L);
+        existingTransaction.setInsertedAt(insertedAt);
+
+        InventoryTransactionUpdateRequestDto request = new InventoryTransactionUpdateRequestDto(2L, null, 9.75, null, 301L);
+
+        when(mockInventoryTransactionRepository.findById(transactionId)).thenReturn(java.util.Optional.of(existingTransaction));
+        when(mockInventoryTransactionRepository.save(any(InventoryTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        InventoryTransactionResponseDto result = inventoryTransactionService.updateInventoryTransaction(transactionId, request);
+
+        assertEquals(transactionId, result.id());
+        assertEquals(2L, result.productId());
+        assertEquals(7, result.quantity());
+        assertEquals(9.75, result.costPricePerUnit());
+        assertEquals(101L, result.source());
+        assertEquals(301L, result.destination());
+        assertEquals(insertedAt, result.insertedAt());
+
+        verify(mockInventoryTransactionRepository, times(1)).findById(transactionId);
+        verify(mockInventoryTransactionRepository, times(1)).save(existingTransaction);
     }
 }

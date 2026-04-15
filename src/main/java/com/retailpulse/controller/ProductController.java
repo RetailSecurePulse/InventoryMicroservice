@@ -1,5 +1,7 @@
 package com.retailpulse.controller;
 
+import com.retailpulse.dto.request.ProductCreateRequestDto;
+import com.retailpulse.dto.request.ProductUpdateRequestDto;
 import com.retailpulse.dto.response.ProductResponseDto;
 import com.retailpulse.entity.Product;
 import com.retailpulse.service.ProductService;
@@ -51,9 +53,10 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductResponseDto> createProduct(@RequestBody Product product) {
-        logger.info("Received request to create product: " + product);
+    public ResponseEntity<ProductResponseDto> createProduct(@RequestBody ProductCreateRequestDto productRequest) {
+        logger.info("Received request to create product: " + productRequest);
         try {
+            Product product = toProduct(productRequest);
             ProductResponseDto createdProduct = productService.saveProduct(product);
             logger.info("Successfully created product with sku: " + createdProduct.sku());
             return ResponseEntity.ok(createdProduct);
@@ -64,16 +67,35 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+    public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable Long id, @RequestBody ProductUpdateRequestDto productRequest) {
         logger.info("Received request to update product with id: " + id);
         try {
-            ProductResponseDto updatedProduct = productService.updateProduct(id, product);
+            ProductResponseDto updatedProduct = productService.updateProduct(id, productRequest);
             logger.info("Successfully updated product with id: " + updatedProduct.id());
             return ResponseEntity.ok(updatedProduct);
         } catch (Exception e) {
             logger.severe("Error updating product: " + e.getMessage());
             throw e;
         }
+    }
+
+    private Product toProduct(ProductCreateRequestDto request) {
+        Product product = new Product();
+        product.setDescription(request.description());
+        product.setCategory(request.category());
+        product.setSubcategory(request.subcategory());
+        product.setBrand(request.brand());
+        product.setOrigin(request.origin());
+        product.setUom(request.uom());
+        product.setVendorCode(request.vendorCode());
+        product.setBarcode(request.barcode());
+        if (request.rrp() != null) {
+            product.setRrp(request.rrp());
+        }
+        if (request.active() != null) {
+            product.setActive(request.active());
+        }
+        return product;
     }
 
     @DeleteMapping("/{id}")
