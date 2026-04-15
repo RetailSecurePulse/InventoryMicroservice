@@ -1,6 +1,7 @@
 package com.retailpulse.service;
 
 import com.retailpulse.dto.request.ProductUpdateRequestDto;
+import com.retailpulse.annotation.AuditLog;
 import com.retailpulse.dto.response.ProductResponseDto;
 import com.retailpulse.entity.Product;
 import com.retailpulse.repository.ProductRepository;
@@ -98,6 +99,7 @@ public class ProductService {
         );
     }
 
+    @AuditLog(action = "CREATE_PRODUCT")
     @CacheEvict(value = {"product", "productList"}, allEntries = true)
     @Transactional
     public ProductResponseDto saveProduct(@NotNull Product product) {
@@ -124,6 +126,7 @@ public class ProductService {
         );
     }
 
+    @AuditLog(action = "UPDATE_PRODUCT")
     @CacheEvict(value = {"product", "productList"}, allEntries = true)
     public ProductResponseDto updateProduct(Long id, ProductUpdateRequestDto productDetails) {
         Product product = productRepository.findById(id)
@@ -176,6 +179,7 @@ public class ProductService {
         updater.accept(newValue);
     }
 
+    @AuditLog(action = "SOFT_DELETE_PRODUCT")
     @CacheEvict(value = {"product", "productList"}, allEntries = true)
     public Product softDeleteProduct(Long id) {
         Product product = productRepository.findById(id)
@@ -192,6 +196,7 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    @AuditLog(action = "REVERSE_SOFT_DELETE_PRODUCT")
     @CacheEvict(value = {"product", "productList"}, allEntries = true)
     public ProductResponseDto reverseSoftDelete(Long id) {
         Product product = productRepository.findById(id)
