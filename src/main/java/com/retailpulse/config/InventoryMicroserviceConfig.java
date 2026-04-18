@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -13,6 +14,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+
+import static com.retailpulse.dto.Constants.*;
 
 /**
  * @Author WilliamSiling
@@ -31,7 +34,7 @@ public class InventoryMicroserviceConfig {
     private String originURL;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         if (authEnabled) {
             System.out.println("Auth enabled");
             http.oauth2ResourceServer(
@@ -44,11 +47,11 @@ public class InventoryMicroserviceConfig {
               .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
               .requestMatchers("/hello").authenticated()
-              .requestMatchers("/api/inventory/businessEntityId/*").hasAnyRole("ADMIN", "CASHIER", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers(HttpMethod.GET, "/api/products").hasAnyRole("ADMIN", "CASHIER", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers("/api/products/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
-              .requestMatchers("/api/inventoryTransaction/**").hasAnyRole("ADMIN", "MANAGER", "INVENTORY_MANAGER")
+              .requestMatchers("/api/inventory/businessEntityId/*").hasAnyRole(ADMIN, CASHIER, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers(HttpMethod.GET, "/api/products").hasAnyRole(ADMIN, CASHIER, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers("/api/inventory/**").hasAnyRole(ADMIN, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers("/api/products/**").hasAnyRole(ADMIN, MANAGER, INVENTORY_MANAGER)
+              .requestMatchers("/api/inventoryTransaction/**").hasAnyRole(ADMIN, MANAGER, INVENTORY_MANAGER)
               .anyRequest().authenticated()
             );
         } else {
@@ -56,12 +59,10 @@ public class InventoryMicroserviceConfig {
             http.authorizeHttpRequests(
                     c -> c.anyRequest().permitAll()
             );
-            http.csrf(csrf -> csrf.disable());
+            http.csrf(AbstractHttpConfigurer::disable);
         }
 
-        http.cors(c -> {
-            c.configurationSource(corsConfigurationSource());
-        });
+        http.cors(c -> c.configurationSource(corsConfigurationSource()));
 
         return http.build();
     }
@@ -70,8 +71,8 @@ public class InventoryMicroserviceConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(originURL));
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of(AUTHORIZATION_HEADER, "Content-Type"));
+        configuration.setExposedHeaders(List.of(AUTHORIZATION_HEADER));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

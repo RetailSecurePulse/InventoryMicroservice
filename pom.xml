@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.7</version>
+        <version>4.0.5</version>
         <relativePath/>
     </parent>
 
@@ -44,13 +44,13 @@
     </dependencyManagement>
 
     <properties>
-        <java.version>21</java.version>        
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <java.version>23</java.version>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <sonar.organization>retailpulse</sonar.organization>
+        <sonar.organization>retailsecurepulse</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <sonar.projectKey>RetailPulse_InventoryMicroservice</sonar.projectKey>
+        <sonar.projectKey>RetailSecurePulse_InventoryMicroservice</sonar.projectKey>
         <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
@@ -186,6 +186,12 @@
             <artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>3.1.1</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- Feign -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -210,6 +216,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <version>11.0.21</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- Spring Boot Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -263,6 +275,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+            <version>3.5.7</version>
         </dependency>
 
     </dependencies>

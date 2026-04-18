@@ -1,5 +1,6 @@
 package com.retailpulse.service;
 
+import com.retailpulse.dto.request.ProductUpdateRequestDto;
 import com.retailpulse.annotation.AuditLog;
 import com.retailpulse.dto.response.ProductResponseDto;
 import com.retailpulse.entity.Product;
@@ -127,7 +128,7 @@ public class ProductService {
 
     @AuditLog(action = "UPDATE_PRODUCT")
     @CacheEvict(value = {"product", "productList"}, allEntries = true)
-    public ProductResponseDto updateProduct(Long id, Product productDetails) {
+    public ProductResponseDto updateProduct(Long id, ProductUpdateRequestDto productDetails) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
@@ -135,16 +136,16 @@ public class ProductService {
             throw new RuntimeException("Cannot update a deleted product with id: " + id);
         }
 
-        updateField(productDetails.getDescription(), product::setDescription);
-        updateField(productDetails.getCategory(), product::setCategory);
-        updateField(productDetails.getSubcategory(), product::setSubcategory);
-        updateField(productDetails.getBrand(), product::setBrand);
-        updateField(productDetails.getOrigin(), product::setOrigin);
-        updateField(productDetails.getUom(), product::setUom);
-        updateField(productDetails.getVendorCode(), product::setVendorCode);
-        updateField(productDetails.getBarcode(), product::setBarcode);
-        if (productDetails.getRrp() >= 0) {
-            product.setRrp(productDetails.getRrp());
+        updateField(productDetails.description(), product::setDescription);
+        updateField(productDetails.category(), product::setCategory);
+        updateField(productDetails.subcategory(), product::setSubcategory);
+        updateField(productDetails.brand(), product::setBrand);
+        updateField(productDetails.origin(), product::setOrigin);
+        updateField(productDetails.uom(), product::setUom);
+        updateField(productDetails.vendorCode(), product::setVendorCode);
+        updateField(productDetails.barcode(), product::setBarcode);
+        if (productDetails.rrp() != null && productDetails.rrp() >= 0) {
+            product.setRrp(productDetails.rrp());
         }
 
         // Do not update isActive field, this is used for soft delete

@@ -1,6 +1,8 @@
 package com.retailpulse.controller;
 
+import com.retailpulse.dto.request.InventoryTransactionRequestDto;
 import com.retailpulse.dto.request.TimeSearchFilterRequestDto;
+import com.retailpulse.dto.request.InventoryTransactionUpdateRequestDto;
 import com.retailpulse.dto.response.InventoryTransactionProductBusinessEntityResponseDto;
 import com.retailpulse.dto.response.InventoryTransactionProductResponseDto;
 import com.retailpulse.dto.response.InventoryTransactionResponseDto;
@@ -38,10 +40,10 @@ public class InventoryTransactionController {
     }
 
     @PostMapping
-    public ResponseEntity<InventoryTransactionResponseDto> createInventoryTransaction(@RequestBody InventoryTransaction inventoryTransaction) {
-        // inventoryTransaction.getQuantity() will always be positive
-        logger.info("Received request to create inventoryTransaction: " + inventoryTransaction);
+    public ResponseEntity<InventoryTransactionResponseDto> createInventoryTransaction(@RequestBody InventoryTransactionRequestDto inventoryTransactionRequest) {
+        logger.info("Received request to create inventoryTransaction: " + inventoryTransactionRequest);
         try {
+            InventoryTransaction inventoryTransaction = toInventoryTransaction(inventoryTransactionRequest);
             InventoryTransactionResponseDto createdInventoryTransaction = inventoryTransactionService.saveInventoryTransaction(inventoryTransaction);
             logger.info("Successfully created createdInventoryTransaction: " + createdInventoryTransaction);
             return ResponseEntity.ok(createdInventoryTransaction);
@@ -51,11 +53,21 @@ public class InventoryTransactionController {
         }
     }
 
+    private InventoryTransaction toInventoryTransaction(InventoryTransactionRequestDto request) {
+        InventoryTransaction inventoryTransaction = new InventoryTransaction();
+        inventoryTransaction.setProductId(request.productId());
+        inventoryTransaction.setQuantity(request.quantity());
+        inventoryTransaction.setCostPricePerUnit(request.costPricePerUnit());
+        inventoryTransaction.setSource(request.source());
+        inventoryTransaction.setDestination(request.destination());
+        return inventoryTransaction;
+    }
+
     @PutMapping("/{id}")
-    public InventoryTransactionResponseDto updateInventoryTransaction(@PathVariable UUID id, @RequestBody InventoryTransaction inventoryTransaction) {
+    public InventoryTransactionResponseDto updateInventoryTransaction(@PathVariable UUID id, @RequestBody InventoryTransactionUpdateRequestDto inventoryTransactionRequest) {
         logger.info("Received request to update inventory transaction with id: " + id);
         try {
-            InventoryTransactionResponseDto updatedInventoryTransaction = inventoryTransactionService.updateInventoryTransaction(id, inventoryTransaction);
+            InventoryTransactionResponseDto updatedInventoryTransaction = inventoryTransactionService.updateInventoryTransaction(id, inventoryTransactionRequest);
             logger.info("Successfully updated inventory transaction with id: " + updatedInventoryTransaction.id());
             return updatedInventoryTransaction;
         } catch (Exception e) {

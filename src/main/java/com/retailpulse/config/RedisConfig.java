@@ -1,7 +1,5 @@
 package com.retailpulse.config;
 
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailpulse.dto.InventoryTransactionDetailsDto;
 import com.retailpulse.dto.InventoryTransactionProductDto;
 import com.retailpulse.dto.response.*;
@@ -10,9 +8,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -29,55 +30,49 @@ public class RedisConfig {
                 .disableCachingNullValues()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()));
 
-        // Plain ObjectMapper (no default typing)
-        ObjectMapper om = new ObjectMapper().findAndRegisterModules();
+        // Keep explicit per-cache types without enabling default typing.
+        ObjectMapper om = JsonMapper.builder().findAndAddModules().build();
 
         // === Per-type serializers (no default typing) ===
 //        // BusinessEntity
-//        Jackson2JsonRedisSerializer<BusinessEntityResponseDto> beSer = new Jackson2JsonRedisSerializer<>(om, BusinessEntityResponseDto.class);
+//        JacksonJsonRedisSerializer<BusinessEntityResponseDto> beSer = serializer(om, BusinessEntityResponseDto.class);
 //        JavaType beListType = om.getTypeFactory().constructCollectionType(List.class, BusinessEntityResponseDto.class);
-//        Jackson2JsonRedisSerializer<Object> beListSer = new Jackson2JsonRedisSerializer<>(om, beListType);
+//        JacksonJsonRedisSerializer<Object> beListSer = serializer(om, beListType);
 
         // Inventory
-        Jackson2JsonRedisSerializer<InventoryResponseDto> invSer = new Jackson2JsonRedisSerializer<>(om, InventoryResponseDto.class);
+        JacksonJsonRedisSerializer<InventoryResponseDto> invSer = serializer(om, InventoryResponseDto.class);
         JavaType invListType = om.getTypeFactory().constructCollectionType(List.class, InventoryResponseDto.class);
-        Jackson2JsonRedisSerializer<Object> invListSer = new Jackson2JsonRedisSerializer<>(om, invListType);
+        JacksonJsonRedisSerializer<Object> invListSer = serializer(om, invListType);
 
         // InventoryTransactionProduct (Response)
-        Jackson2JsonRedisSerializer<InventoryTransactionProductResponseDto> itpRespSer = new Jackson2JsonRedisSerializer<>(om, InventoryTransactionProductResponseDto.class);
+        JacksonJsonRedisSerializer<InventoryTransactionProductResponseDto> itpRespSer = serializer(om, InventoryTransactionProductResponseDto.class);
         JavaType itpRespListType = om.getTypeFactory().constructCollectionType(List.class, InventoryTransactionProductResponseDto.class);
-        Jackson2JsonRedisSerializer<Object> itpRespListSer = new Jackson2JsonRedisSerializer<>(om, itpRespListType);
+        JacksonJsonRedisSerializer<Object> itpRespListSer = serializer(om, itpRespListType);
 
         // InventoryTransaction (Response)
-        Jackson2JsonRedisSerializer<InventoryTransactionResponseDto> itrSer = new Jackson2JsonRedisSerializer<>(om, InventoryTransactionResponseDto.class);
+        JacksonJsonRedisSerializer<InventoryTransactionResponseDto> itrSer = serializer(om, InventoryTransactionResponseDto.class);
         JavaType itrListType = om.getTypeFactory().constructCollectionType(List.class, InventoryTransactionResponseDto.class);
-        Jackson2JsonRedisSerializer<Object> itrListSer = new Jackson2JsonRedisSerializer<>(om, itrListType);
+        JacksonJsonRedisSerializer<Object> itrListSer = serializer(om, itrListType);
 
         // Product (Response)
-        Jackson2JsonRedisSerializer<ProductResponseDto> prodSer = new Jackson2JsonRedisSerializer<>(om, ProductResponseDto.class);
+        JacksonJsonRedisSerializer<ProductResponseDto> prodSer = serializer(om, ProductResponseDto.class);
         JavaType prodListType = om.getTypeFactory().constructCollectionType(List.class, ProductResponseDto.class);
-        Jackson2JsonRedisSerializer<Object> prodListSer = new Jackson2JsonRedisSerializer<>(om, prodListType);
+        JacksonJsonRedisSerializer<Object> prodListSer = serializer(om, prodListType);
 
         // InventoryTransactionDetails (DTO)
-        Jackson2JsonRedisSerializer<InventoryTransactionDetailsDto> itdSer = new Jackson2JsonRedisSerializer<>(om, InventoryTransactionDetailsDto.class);
+        JacksonJsonRedisSerializer<InventoryTransactionDetailsDto> itdSer = serializer(om, InventoryTransactionDetailsDto.class);
         JavaType itdListType = om.getTypeFactory().constructCollectionType(List.class, InventoryTransactionDetailsDto.class);
-        Jackson2JsonRedisSerializer<Object> itdListSer = new Jackson2JsonRedisSerializer<>(om, itdListType);
+        JacksonJsonRedisSerializer<Object> itdListSer = serializer(om, itdListType);
 
         // InventoryTransactionProduct (DTO)
-        Jackson2JsonRedisSerializer<InventoryTransactionProductDto> itpDtoSer = new Jackson2JsonRedisSerializer<>(om, InventoryTransactionProductDto.class);
+        JacksonJsonRedisSerializer<InventoryTransactionProductDto> itpDtoSer = serializer(om, InventoryTransactionProductDto.class);
         JavaType itpDtoListType = om.getTypeFactory().constructCollectionType(List.class, InventoryTransactionProductDto.class);
-        Jackson2JsonRedisSerializer<Object> itpDtoListSer = new Jackson2JsonRedisSerializer<>(om, itpDtoListType);
+        JacksonJsonRedisSerializer<Object> itpDtoListSer = serializer(om, itpDtoListType);
 
 
 
         // Per-cache configurations with the correct value serializer
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
-//        cacheConfigs.put("businessEntity", base.serializeValuesWith(
-//                RedisSerializationContext.SerializationPair.fromSerializer(beSer))
-//        );
-//        cacheConfigs.put("businessEntityList", base.serializeValuesWith(
-//                RedisSerializationContext.SerializationPair.fromSerializer(beListSer))
-//        );
 
         cacheConfigs.put("inventory", base.serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(invSer))
@@ -125,5 +120,13 @@ public class RedisConfig {
                 .cacheDefaults(base) // default if any other cache is added later
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();
+    }
+
+    private static <T> JacksonJsonRedisSerializer<T> serializer(ObjectMapper objectMapper, Class<T> type) {
+        return new JacksonJsonRedisSerializer<>(objectMapper, type);
+    }
+
+    private static JacksonJsonRedisSerializer<Object> serializer(ObjectMapper objectMapper, JavaType javaType) {
+        return new JacksonJsonRedisSerializer<>(objectMapper, javaType);
     }
 }

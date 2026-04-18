@@ -40,8 +40,8 @@ public class AuditAspect {
     }
 
     private void saveLog(String actor, String action, String status, String ip) {
-        AuditLogEntity record = new AuditLogEntity(actor, action, status, ip, LocalDateTime.now());
-        auditLogRepository.save(record);
+        AuditLogEntity records = new AuditLogEntity(actor, action, status, ip, LocalDateTime.now());
+        auditLogRepository.save(records);
     }
 
 }
