@@ -1,6 +1,5 @@
 package com.retailpulse.service;
 
-import java.util.logging.Logger;
 import com.retailpulse.dto.request.InventoryUpdateRequestDto;
 import com.retailpulse.dto.response.InventoryResponseDto;
 import com.retailpulse.entity.Inventory;
@@ -8,13 +7,14 @@ import com.retailpulse.repository.InventoryRepository;
 import com.retailpulse.service.exception.BusinessException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 @Service
 public class InventoryService {

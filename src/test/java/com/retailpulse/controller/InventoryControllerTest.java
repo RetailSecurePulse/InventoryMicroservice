@@ -1,8 +1,8 @@
 package com.retailpulse.controller;
 
-import com.retailpulse.exception.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailpulse.dto.request.InventoryUpdateRequestDto;
+import com.retailpulse.exception.GlobalExceptionHandler;
 import com.retailpulse.service.InventoryService;
 import com.retailpulse.service.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,12 +18,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryControllerTest {

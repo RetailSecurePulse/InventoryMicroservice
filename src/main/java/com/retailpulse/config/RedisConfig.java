@@ -2,7 +2,10 @@ package com.retailpulse.config;
 
 import com.retailpulse.dto.InventoryTransactionDetailsDto;
 import com.retailpulse.dto.InventoryTransactionProductDto;
-import com.retailpulse.dto.response.*;
+import com.retailpulse.dto.response.InventoryResponseDto;
+import com.retailpulse.dto.response.InventoryTransactionProductResponseDto;
+import com.retailpulse.dto.response.InventoryTransactionResponseDto;
+import com.retailpulse.dto.response.ProductResponseDto;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
