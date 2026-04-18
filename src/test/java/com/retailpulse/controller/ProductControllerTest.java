@@ -23,6 +23,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -110,6 +112,63 @@ class ProductControllerTest {
         assertEquals("VENDOR-2", mapped.vendorCode());
         assertNull(mapped.barcode());
         assertEquals(99.5, mapped.rrp());
+    }
+
+    @Test
+    void testGetAllProducts_returnsPayload() throws Exception {
+        when(productService.getAllProducts()).thenReturn(java.util.List.of(
+                productResponse("Denim Jacket", "Outerwear", "Jackets", "Levis", "USA", "each", "LEV", "1234567890", 79.99, true)
+        ));
+
+        mockMvc.perform(get("/api/products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sku").value("RP12345"))
+                .andExpect(jsonPath("$[0].description").value("Denim Jacket"));
+    }
+
+    @Test
+    void testGetProductById_returnsPayload() throws Exception {
+        when(productService.getProductById(1L))
+                .thenReturn(productResponse("Denim Jacket", "Outerwear", "Jackets", "Levis", "USA", "each", "LEV", "1234567890", 79.99, true));
+
+        mockMvc.perform(get("/api/products/{id}", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.description").value("Denim Jacket"));
+    }
+
+    @Test
+    void testGetProductBySku_returnsPayload() throws Exception {
+        when(productService.getProductBySKU("RP12345"))
+                .thenReturn(productResponse("Denim Jacket", "Outerwear", "Jackets", "Levis", "USA", "each", "LEV", "1234567890", 79.99, true));
+
+        mockMvc.perform(get("/api/products/sku/{sku}", "RP12345"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sku").value("RP12345"));
+    }
+
+    @Test
+    void testGetProductBySku_rejectsBlankInput() throws Exception {
+        mockMvc.perform(get("/api/products/sku/{sku}", ""))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteProduct_returnsOk() throws Exception {
+        mockMvc.perform(delete("/api/products/{id}", 1L))
+                .andExpect(status().isOk());
+
+        verify(productService).softDeleteProduct(1L);
+    }
+
+    @Test
+    void testReverseSoftDelete_returnsPayload() throws Exception {
+        when(productService.reverseSoftDelete(1L))
+                .thenReturn(productResponse("Denim Jacket", "Outerwear", "Jackets", "Levis", "USA", "each", "LEV", "1234567890", 79.99, true));
+
+        mockMvc.perform(put("/api/products/reverseSoftDelete/{id}", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true));
     }
 
     private ProductCreateRequestDto createRequest() {

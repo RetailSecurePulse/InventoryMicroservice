@@ -61,6 +61,18 @@ class ProductServiceTest {
     }
 
     @Test
+    void testGetProductById_NotFound() {
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        com.retailpulse.service.exception.BusinessException exception = assertThrows(
+                com.retailpulse.service.exception.BusinessException.class,
+                () -> productService.getProductById(99L)
+        );
+
+        assertEquals("PRODUCT_BY_ID_NOT_FOUND", exception.getCode());
+    }
+
+    @Test
     void testGetProductBySKU_Success() {
         when(productRepository.findBySku("RP12345")).thenReturn(Optional.of(product(1L, "RP12345", null, 0, true)));
 
@@ -68,6 +80,18 @@ class ProductServiceTest {
 
         assertNotNull(result);
         assertEquals("RP12345", result.sku());
+    }
+
+    @Test
+    void testGetProductBySKU_NotFound() {
+        when(productRepository.findBySku("RP99999")).thenReturn(Optional.empty());
+
+        com.retailpulse.service.exception.BusinessException exception = assertThrows(
+                com.retailpulse.service.exception.BusinessException.class,
+                () -> productService.getProductBySKU("RP99999")
+        );
+
+        assertEquals("PRODUCT_BY_SKU_NOT_FOUND", exception.getCode());
     }
 
     @Test
@@ -154,6 +178,21 @@ class ProductServiceTest {
     }
 
     @Test
+    void testUpdateProduct_ignoresEmptyStringsAndNegativeRrp() {
+        Product existingProduct = product(1L, "12345", "Old Description", 10, true);
+        existingProduct.setCategory("Old Category");
+        when(productRepository.findById(1L)).thenReturn(Optional.of(existingProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProductUpdateRequestDto request = new ProductUpdateRequestDto("", "", "", "", "", "", "", "", -5.0);
+        ProductResponseDto result = productService.updateProduct(1L, request);
+
+        assertEquals("Old Description", result.description());
+        assertEquals("Old Category", result.category());
+        assertEquals(10, result.rrp());
+    }
+
+    @Test
     void testDeleteProduct_Success() {
         Product product = product(1L, null, null, 0, true);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -192,6 +231,15 @@ class ProductServiceTest {
         verify(productRepository).findById(1L);
         verify(inventoryService).inventoryContainsProduct(1L);
         verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    void testDeleteProduct_NotFound() {
+        when(productRepository.findById(77L)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> productService.softDeleteProduct(77L));
+
+        assertEquals("Product not found with id: 77", exception.getMessage());
     }
 
     @Test

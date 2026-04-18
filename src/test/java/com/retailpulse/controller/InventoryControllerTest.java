@@ -18,8 +18,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -69,6 +71,61 @@ class InventoryControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
                 .andExpect(jsonPath("$.message").value("Not enough stock"));
+    }
+
+    @Test
+    void testGetAllInventories_returnsPayload() throws Exception {
+        when(inventoryService.getAllInventory()).thenReturn(List.of(
+                new com.retailpulse.dto.response.InventoryResponseDto(1L, 100L, 200L, 50, 75.0)
+        ));
+
+        mockMvc.perform(get("/api/inventory"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].productId").value(100))
+                .andExpect(jsonPath("$[0].quantity").value(50));
+    }
+
+    @Test
+    void testGetInventoryById_returnsPayload() throws Exception {
+        when(inventoryService.getInventoryById(1L))
+                .thenReturn(new com.retailpulse.dto.response.InventoryResponseDto(1L, 100L, 200L, 50, 75.0));
+
+        mockMvc.perform(get("/api/inventory/{id}", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.businessEntityId").value(200));
+    }
+
+    @Test
+    void testGetInventoryByProductId_returnsPayload() throws Exception {
+        when(inventoryService.getInventoryByProductId(100L)).thenReturn(List.of(
+                new com.retailpulse.dto.response.InventoryResponseDto(1L, 100L, 200L, 50, 75.0)
+        ));
+
+        mockMvc.perform(get("/api/inventory/productId/{id}", 100L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].productId").value(100));
+    }
+
+    @Test
+    void testGetInventoryByBusinessEntityId_returnsPayload() throws Exception {
+        when(inventoryService.getInventoryByBusinessEntityId(200L)).thenReturn(List.of(
+                new com.retailpulse.dto.response.InventoryResponseDto(1L, 100L, 200L, 50, 75.0)
+        ));
+
+        mockMvc.perform(get("/api/inventory/businessEntityId/{businessEntityId}", 200L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].businessEntityId").value(200));
+    }
+
+    @Test
+    void testGetInventoryByProductIdAndBusinessEntityId_returnsPayload() throws Exception {
+        when(inventoryService.getInventoryByProductIdAndBusinessEntityId(100L, 200L))
+                .thenReturn(new com.retailpulse.dto.response.InventoryResponseDto(1L, 100L, 200L, 50, 75.0));
+
+        mockMvc.perform(get("/api/inventory/productId/{productId}/businessEntityId/{businessEntityId}", 100L, 200L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(100))
+                .andExpect(jsonPath("$.businessEntityId").value(200));
     }
 
     private InventoryUpdateRequestDto salesUpdateRequest(int quantity) {

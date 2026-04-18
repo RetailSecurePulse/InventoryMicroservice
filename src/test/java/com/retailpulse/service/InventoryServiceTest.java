@@ -66,6 +66,15 @@ class InventoryServiceTest {
     }
 
     @Test
+    void testGetInventoryById_notFound() {
+        when(inventoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> inventoryService.getInventoryById(99L));
+
+        assertEquals("INVENTORY_NOT_FOUND", exception.getCode());
+    }
+
+    @Test
     void testGetInventoryByProductId() {
         Long productId = 101L;
         when(inventoryRepository.findByProductId(productId)).thenReturn(List.of(inventory(1L, productId, 201L, 50)));
@@ -94,6 +103,16 @@ class InventoryServiceTest {
     }
 
     @Test
+    void testGetInventoryByBusinessEntityId_invalidBusinessEntity() {
+        when(businessEntityService.isValidBusinessEntity(999L)).thenReturn(false);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> inventoryService.getInventoryByBusinessEntityId(999L));
+
+        assertEquals("INVALID_BUSINESS_ENTITY", exception.getCode());
+    }
+
+    @Test
     void testGetInventoryByProductIdAndBusinessEntityId() {
         Long productId = 101L;
         Long businessEntityId = 201L;
@@ -106,6 +125,17 @@ class InventoryServiceTest {
         assertInventoryResponse(result, 1L, productId, businessEntityId, 50);
         verify(inventoryRepository).findByProductIdAndBusinessEntityId(productId, businessEntityId);
         verifyNoMoreInteractions(inventoryRepository);
+    }
+
+    @Test
+    void testGetInventoryByProductIdAndBusinessEntityId_notFound() {
+        when(businessEntityService.isValidBusinessEntity(201L)).thenReturn(true);
+        when(inventoryRepository.findByProductIdAndBusinessEntityId(101L, 201L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> inventoryService.getInventoryByProductIdAndBusinessEntityId(101L, 201L));
+
+        assertEquals("INVENTORY_BY_PRODUCT_AND_BUSINESS_ENTITY_NOT_FOUND", exception.getCode());
     }
 
     @Test
@@ -161,6 +191,33 @@ class InventoryServiceTest {
     }
 
     @Test
+    void testUpdateInventory_ignoresNegativeQuantityAndCostPrice() {
+        Long inventoryId = 1L;
+        Inventory existingInventory = inventory(inventoryId, 101L, 201L, 50);
+        existingInventory.setTotalCostPrice(120.0);
+        Inventory updatedDetails = inventory(null, 102L, 202L, -1);
+        updatedDetails.setTotalCostPrice(-1.0);
+
+        when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(existingInventory));
+        when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Inventory result = inventoryService.updateInventory(inventoryId, updatedDetails);
+
+        assertInventory(result, inventoryId, 102L, 202L, 50);
+        assertEquals(120.0, result.getTotalCostPrice());
+    }
+
+    @Test
+    void testUpdateInventory_notFound() {
+        when(inventoryRepository.findById(44L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> inventoryService.updateInventory(44L, inventory(null, 1L, 2L, 3)));
+
+        assertEquals("INVENTORY_NOT_FOUND", exception.getCode());
+    }
+
+    @Test
     void testDeleteInventory() {
         Long inventoryId = 1L;
         Inventory inventoryToDelete = inventory(inventoryId, 101L, 201L, 50);
@@ -172,6 +229,15 @@ class InventoryServiceTest {
         verify(inventoryRepository).findById(inventoryId);
         verify(inventoryRepository).delete(inventoryToDelete);
         verifyNoMoreInteractions(inventoryRepository);
+    }
+
+    @Test
+    void testDeleteInventory_notFound() {
+        when(inventoryRepository.findById(123L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> inventoryService.deleteInventory(123L));
+
+        assertEquals("INVENTORY_NOT_FOUND", exception.getCode());
     }
 
     @Test
@@ -203,6 +269,43 @@ class InventoryServiceTest {
         BusinessException ex = assertThrows(BusinessException.class, () -> inventoryService.salesUpdateStocks(request));
 
         assertEquals("INSUFFICIENT_STOCK", ex.getCode());
+        verify(inventoryRepository, never()).save(any());
+    }
+
+    @Test
+    void testSalesUpdateStocks_inventoryMissing_throwsException() {
+        long businessEntityId = 1L;
+        InventoryUpdateRequestDto request = salesUpdateRequest(businessEntityId, 100L, 10);
+
+        when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(true);
+        when(inventoryRepository.findByProductIdAndBusinessEntityId(100L, businessEntityId)).thenReturn(Optional.empty());
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> inventoryService.salesUpdateStocks(request));
+
+        assertEquals("INVENTORY_BY_PRODUCT_AND_BUSINESS_ENTITY_NOT_FOUND", ex.getCode());
+    }
+
+    @Test
+    void testSalesUpdateStocks_multipleFailedItems_listsAllProductIds() {
+        long businessEntityId = 1L;
+        Inventory firstInventory = inventory(1L, 100L, businessEntityId, 5);
+        Inventory secondInventory = inventory(2L, 101L, businessEntityId, 1);
+        InventoryUpdateRequestDto request = new InventoryUpdateRequestDto(
+                businessEntityId,
+                List.of(
+                        new InventoryUpdateRequestDto.InventoryItem(100L, 10),
+                        new InventoryUpdateRequestDto.InventoryItem(101L, 2)
+                )
+        );
+
+        when(businessEntityService.isValidBusinessEntity(businessEntityId)).thenReturn(true);
+        when(inventoryRepository.findByProductIdAndBusinessEntityId(100L, businessEntityId)).thenReturn(Optional.of(firstInventory));
+        when(inventoryRepository.findByProductIdAndBusinessEntityId(101L, businessEntityId)).thenReturn(Optional.of(secondInventory));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> inventoryService.salesUpdateStocks(request));
+
+        assertEquals("INSUFFICIENT_STOCK", ex.getCode());
+        assertEquals("Insufficient stock for products: 100, 101", ex.getMessage());
         verify(inventoryRepository, never()).save(any());
     }
 
