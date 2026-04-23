@@ -16,13 +16,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +55,65 @@ class InventoryTransactionServiceTest {
 
         verify(mockInventoryTransactionRepository, times(1)).findAllWithProduct();
         verifyNoMoreInteractions(mockInventoryTransactionRepository);
+    }
+
+    @Test
+    void testGetAllInventoryTransactionWithProductAndBusinessEntity_nullFilter() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> inventoryTransactionService.getAllInventoryTransactionWithProductAndBusinessEntity(null));
+
+        assertEquals("TimeSearchFilterRequestDto cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void testGetAllInventoryTransactionWithProductAndBusinessEntity_emptyTransactions() {
+        when(mockInventoryTransactionRepository.findAllWithProductAndTime(any(), any())).thenReturn(List.of());
+
+        List<InventoryTransactionProductBusinessEntityResponseDto> result =
+                inventoryTransactionService.getAllInventoryTransactionWithProductAndBusinessEntity(
+                        new com.retailpulse.dto.request.TimeSearchFilterRequestDto(Instant.now(), Instant.now())
+                );
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetAllInventoryTransactionWithProductAndBusinessEntity_withoutBusinessEntityDetails() {
+        InventoryTransactionProductResponseDto tx = new InventoryTransactionProductResponseDto(
+                transactionWithId(1L, 101L, 201L),
+                productEntity(1L, "Product A")
+        );
+        when(mockInventoryTransactionRepository.findAllWithProductAndTime(any(), any())).thenReturn(List.of(tx));
+        when(mockBusinessEntityService.allBusinessEntityResponseDetails()).thenReturn(List.of());
+
+        List<InventoryTransactionProductBusinessEntityResponseDto> result =
+                inventoryTransactionService.getAllInventoryTransactionWithProductAndBusinessEntity(
+                        new com.retailpulse.dto.request.TimeSearchFilterRequestDto(Instant.now(), Instant.now())
+                );
+
+        assertEquals(1, result.size());
+        assertNull(result.getFirst().source());
+        assertNull(result.getFirst().destination());
+    }
+
+    @Test
+    void testGetAllInventoryTransactionWithProductAndBusinessEntity_withBusinessEntityDetails() {
+        InventoryTransaction inventoryTransaction = transactionWithId(1L, 101L, 201L);
+        when(mockInventoryTransactionRepository.findAllWithProductAndTime(any(), any())).thenReturn(List.of(
+                new InventoryTransactionProductResponseDto(inventoryTransaction, productEntity(1L, "Product A"))
+        ));
+        when(mockBusinessEntityService.allBusinessEntityResponseDetails()).thenReturn(List.of(
+                new BusinessEntityResponseDto(101L, "Store A", "Yangon", "STORE", false, true),
+                new BusinessEntityResponseDto(201L, "Store B", "Mandalay", "STORE", false, true)
+        ));
+
+        List<InventoryTransactionProductBusinessEntityResponseDto> result =
+                inventoryTransactionService.getAllInventoryTransactionWithProductAndBusinessEntity(
+                        new com.retailpulse.dto.request.TimeSearchFilterRequestDto(Instant.now(), Instant.now())
+                );
+
+        assertEquals("Store A", result.getFirst().source().name());
+        assertEquals("Store B", result.getFirst().destination().name());
     }
 
     @Test
@@ -147,6 +204,17 @@ class InventoryTransactionServiceTest {
     }
 
     @Test
+    void testSaveInventoryTransaction_DeletedProduct() {
+        InventoryTransaction transaction = transaction(1L, 101L, 201L, 10, 5.0);
+        when(mockProductService.getProductById(1L)).thenReturn(inactiveProduct());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> inventoryTransactionService.saveInventoryTransaction(transaction));
+
+        assertEquals("Product deleted for product id: 1", exception.getMessage());
+    }
+
+    @Test
     void testSaveInventoryTransaction_SourceSameAsDestination() {
         InventoryTransaction transaction = transaction(1L, 101L, 101L, 10, 5.0);
         ProductResponseDto product = activeProduct();
@@ -174,6 +242,57 @@ class InventoryTransactionServiceTest {
 
         verify(mockProductService, times(1)).getProductById(1L);
         verifyNoMoreInteractions(mockProductService);
+    }
+
+    @Test
+    void testSaveInventoryTransaction_NegativeCostPrice() {
+        InventoryTransaction transaction = transaction(1L, 101L, 201L, 5, -1.0);
+        ProductResponseDto product = activeProduct();
+
+        when(mockProductService.getProductById(1L)).thenReturn(product);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> inventoryTransactionService.saveInventoryTransaction(transaction));
+
+        assertEquals("Cost price per unit cannot be negative", exception.getMessage());
+    }
+
+    @Test
+    void testSaveInventoryTransaction_SourceLookupFailureWrapped() {
+        InventoryTransaction transaction = transaction(1L, 101L, 201L, 5, 1.0);
+        when(mockProductService.getProductById(1L)).thenReturn(activeProduct());
+        when(mockBusinessEntityService.isExternalBusinessEntity(101L)).thenThrow(new IllegalStateException("downstream"));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> inventoryTransactionService.saveInventoryTransaction(transaction));
+
+        assertEquals("Unable to retrieve source business entity with id: 101", exception.getMessage());
+    }
+
+    @Test
+    void testSaveInventoryTransaction_DestinationLookupFailureWrapped() {
+        InventoryTransaction transaction = transaction(1L, 101L, 201L, 5, 1.0);
+        when(mockProductService.getProductById(1L)).thenReturn(activeProduct());
+        when(mockBusinessEntityService.isExternalBusinessEntity(101L)).thenReturn(true);
+        when(mockBusinessEntityService.isExternalBusinessEntity(201L)).thenThrow(new IllegalStateException("downstream"));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> inventoryTransactionService.saveInventoryTransaction(transaction));
+
+        assertEquals("Unable to retrieve destination business entity with id: 201", exception.getMessage());
+    }
+
+    @Test
+    void testSaveInventoryTransaction_SourceInventoryMissing() {
+        InventoryTransaction transaction = transaction(1L, 101L, 201L, 10, 5.0);
+        when(mockProductService.getProductById(1L)).thenReturn(activeProduct());
+        when(mockBusinessEntityService.isExternalBusinessEntity(101L)).thenReturn(false);
+        when(mockInventoryService.getInventoryByProductIdAndBusinessEntityId(1L, 101L)).thenReturn(null);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> inventoryTransactionService.saveInventoryTransaction(transaction));
+
+        assertEquals("Source inventory not found for product id: 1 and source id: 101", exception.getMessage());
     }
 
     @Test
@@ -351,6 +470,20 @@ class InventoryTransactionServiceTest {
         verify(mockInventoryTransactionRepository, times(1)).save(existingTransaction);
     }
 
+    @Test
+    void testUpdateInventoryTransaction_notFound() {
+        UUID transactionId = UUID.randomUUID();
+        when(mockInventoryTransactionRepository.findById(transactionId)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> inventoryTransactionService.updateInventoryTransaction(
+                        transactionId,
+                        new InventoryTransactionUpdateRequestDto(1L, 2, 3.0, 4L, 5L)
+                ));
+
+        assertEquals("Inventory not found with id: " + transactionId, exception.getMessage());
+    }
+
     private InventoryTransaction transaction(Long productId, Long source, Long destination, int quantity, double costPricePerUnit) {
         InventoryTransaction transaction = new InventoryTransaction();
         transaction.setProductId(productId);
@@ -379,6 +512,20 @@ class InventoryTransactionServiceTest {
                 1L, "LEV-M-001", "Levis men jeans", "Jeans", "Men",
                 "Levis", "USA", "each", "LEV", "LEV-B-001", 100.00, true
         );
+    }
+
+    private ProductResponseDto inactiveProduct() {
+        return new ProductResponseDto(
+                1L, "LEV-M-001", "Levis men jeans", "Jeans", "Men",
+                "Levis", "USA", "each", "LEV", "LEV-B-001", 100.00, false
+        );
+    }
+
+    private InventoryTransaction transactionWithId(Long productId, Long source, Long destination) {
+        InventoryTransaction transaction = transaction(productId, source, destination, 5, 2.0);
+        transaction.setId(UUID.randomUUID());
+        transaction.setInsertedAt(Instant.parse("2026-04-16T00:00:00Z"));
+        return transaction;
     }
 
     private InventoryResponseDto inventoryResponse(Long id, Long productId, Long businessEntityId, int quantity, double totalCostPrice) {
