@@ -10,17 +10,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.lang.Nullable;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
-
-import java.util.Objects;
 
 @Slf4j
 public class FeignConfig {
 
     private final Tracer tracer;
 
-    public FeignConfig(Tracer tracer) {
+    public FeignConfig(@Nullable Tracer tracer) {
         this.tracer = tracer;
     }
 
@@ -32,10 +31,9 @@ public class FeignConfig {
     @Bean
     public RequestInterceptor oauth2BearerForwardingInterceptor() {
         return template -> {
-
-            if (tracer.currentSpan() != null) {
-                template.header("X-B3-TraceId", Objects.requireNonNull(tracer.currentSpan()).context().traceId());
-                template.header("X-B3-SpanId", Objects.requireNonNull(tracer.currentSpan()).context().spanId());
+            if (tracer != null && tracer.currentSpan() != null) {
+                template.header("X-B3-TraceId", tracer.currentSpan().context().traceId());
+                template.header("X-B3-SpanId", tracer.currentSpan().context().spanId());
             }
 
             String token = extractBearerToken();
