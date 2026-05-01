@@ -27,7 +27,7 @@ class InventoryMicroserviceConfigTest {
         CorsConfigurationSource source = ReflectionTestUtils.invokeMethod(config, "corsConfigurationSource");
         CorsConfiguration configuration = source.getCorsConfiguration(new MockHttpServletRequest("GET", "/api/products"));
 
-        assertEquals(List.of("https://retailpulse.example"), configuration.getAllowedOrigins());
+        assertEquals(List.of("https://retailpulse.example"), configuration.getAllowedOriginPatterns());
         assertEquals(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"), configuration.getAllowedMethods());
         assertEquals(List.of("Authorization", "Content-Type"), configuration.getAllowedHeaders());
         assertEquals(List.of("Authorization"), configuration.getExposedHeaders());
