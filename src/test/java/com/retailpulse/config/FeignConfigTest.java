@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,14 +52,14 @@ class FeignConfigTest {
 
     @Test
     void feignLoggerLevel_returnsFull() {
-        FeignConfig feignConfig = new FeignConfig(tracer);
+        FeignConfig feignConfig = new FeignConfig(tracerProvider(tracer));
 
         assertEquals(Logger.Level.FULL, feignConfig.feignLoggerLevel());
     }
 
     @Test
     void interceptor_addsTraceHeadersAndJwtBearerToken() {
-        FeignConfig feignConfig = new FeignConfig(tracer);
+        FeignConfig feignConfig = new FeignConfig(tracerProvider(tracer));
         RequestInterceptor interceptor = feignConfig.oauth2BearerForwardingInterceptor();
         RequestTemplate template = new RequestTemplate();
         template.method("GET");
@@ -86,7 +88,7 @@ class FeignConfigTest {
 
     @Test
     void interceptor_readsBearerTokenFromBearerAuthentication() {
-        FeignConfig feignConfig = new FeignConfig(tracer);
+        FeignConfig feignConfig = new FeignConfig(tracerProvider(tracer));
         RequestInterceptor interceptor = feignConfig.oauth2BearerForwardingInterceptor();
         RequestTemplate template = new RequestTemplate();
         template.method("POST");
@@ -114,7 +116,7 @@ class FeignConfigTest {
 
     @Test
     void interceptor_fallsBackToRequestHeaderWhenSecurityContextHasNoBearerToken() {
-        FeignConfig feignConfig = new FeignConfig(tracer);
+        FeignConfig feignConfig = new FeignConfig(tracerProvider(tracer));
         RequestInterceptor interceptor = feignConfig.oauth2BearerForwardingInterceptor();
         RequestTemplate template = new RequestTemplate();
         template.method("GET");
@@ -135,7 +137,7 @@ class FeignConfigTest {
 
     @Test
     void interceptor_skipsAuthorizationWhenNoTokenExists() {
-        FeignConfig feignConfig = new FeignConfig(tracer);
+        FeignConfig feignConfig = new FeignConfig(tracerProvider(tracer));
         RequestInterceptor interceptor = feignConfig.oauth2BearerForwardingInterceptor();
         RequestTemplate template = new RequestTemplate();
         template.method("GET");
@@ -146,5 +148,12 @@ class FeignConfigTest {
         interceptor.apply(template);
 
         assertTrue(template.headers().getOrDefault(HttpHeaders.AUTHORIZATION, List.of()).isEmpty());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ObjectProvider<Tracer> tracerProvider(Tracer tracer) {
+        ObjectProvider<Tracer> tracerProvider = mock(ObjectProvider.class);
+        when(tracerProvider.getIfAvailable()).thenReturn(tracer);
+        return tracerProvider;
     }
 }
